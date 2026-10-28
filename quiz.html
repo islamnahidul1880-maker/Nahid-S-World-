@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>মগজ কুইজ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;700&family=DM+Mono:wght@500&display=swap">
+<style>
+/* Layout: one centered column. Welcome line, header with score, then one of three screens (intro, question, result). Same night-garden palette as the snake game so the pages feel like one world. */
+:root {
+  --bg: #0e1a17;
+  --panel: #14261f;
+  --grid: #1b3329;
+  --fg: #e6f1ea;
+  --muted: #8fa89b;
+  --accent: #7ddc9a;
+  --accent-soft: #c8f5d5;
+  --btn: #1d3a2e;
+  --btn-active: #2b5642;
+  --good: #5ed38a;
+  --good-bg: #1d5236;
+  --bad: #ff7a59;
+  --bad-bg: #5a2a22;
+  --gold: #e9c548;
+  --font-body: "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif;
+  --font-num: "DM Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: auto; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  padding-block: 20px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-tap-highlight-color: transparent;
+}
+.wrap { max-width: 460px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.welcome { margin: 0; text-align: center; font-size: 1.5rem; font-weight: 700; line-height: 1.25; color: var(--accent-soft); text-wrap: balance; padding-bottom: 12px; border-bottom: 2px solid var(--grid); }
+header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { margin: 0; font-size: 2rem; line-height: 1.1; font-weight: 700; text-wrap: balance; }
+.scores { display: flex; gap: 20px; }
+.score { display: flex; flex-direction: column; align-items: flex-end; }
+.score span { font-size: 0.8rem; color: var(--muted); letter-spacing: 0.04em; }
+.score b { font-family: var(--font-num); font-size: 1.5rem; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1.2; }
+
+.card { background: var(--panel); border: 2px solid var(--grid); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.card h2 { margin: 0; font-size: 1.5rem; text-wrap: balance; }
+.card p { margin: 0; color: var(--muted); }
+.big { font-family: var(--font-num); font-size: 2.4rem; font-weight: 500; color: var(--accent-soft); line-height: 1.1; }
+ul.rules { margin: 0; padding-left: 1.2em; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+
+.primary { font: inherit; font-weight: 700; font-size: 1.1rem; color: #0e1a17; background: var(--accent); border: 0; border-radius: 8px; padding: 12px 28px; cursor: pointer; align-self: stretch; }
+.primary:active { transform: scale(0.98); }
+.ghost { font: inherit; color: var(--fg); background: transparent; border: 1px solid var(--grid); border-radius: 8px; padding: 8px 16px; cursor: pointer; }
+.ghost:disabled { opacity: 0.4; cursor: default; }
+button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
+
+.status { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.pill { font-size: 0.85rem; font-weight: 700; color: #0e1a17; background: var(--gold); border-radius: 999px; padding: 2px 12px; }
+.count { font-family: var(--font-num); color: var(--muted); font-variant-numeric: tabular-nums; }
+.lives { color: var(--bad); letter-spacing: 0.15em; font-size: 1.1rem; }
+.bar { height: 8px; border-radius: 999px; background: var(--grid); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 100%; background: var(--accent); border-radius: 999px; transform-origin: left; }
+.bar i.low { background: var(--bad); }
+.q { margin: 0; font-size: 1.25rem; font-weight: 700; line-height: 1.4; text-wrap: balance; }
+.opts { display: flex; flex-direction: column; gap: 10px; }
+.opt { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 54px; text-align: left; font: inherit; font-size: 1.05rem; color: var(--fg); background: var(--btn); border: 2px solid transparent; border-radius: 10px; padding: 10px 14px; cursor: pointer; touch-action: manipulation; }
+.opt:active { background: var(--btn-active); }
+.opt .k { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--grid); font-size: 0.9rem; font-weight: 700; color: var(--accent-soft); }
+.opt.correct { border-color: var(--good); background: var(--good-bg); }
+.opt.wrong { border-color: var(--bad); background: var(--bad-bg); }
+.opt.dim { opacity: 0.3; }
+.opt:disabled { cursor: default; }
+.note { min-height: 1.5em; margin: 0; text-align: center; font-weight: 700; }
+.note.good { color: var(--good); }
+.note.bad { color: var(--bad); }
+.tools { display: flex; justify-content: center; }
+.statrow { display: flex; gap: 12px; flex-wrap: wrap; }
+.stat { flex: 1 1 120px; background: var(--btn); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; }
+.stat span { font-size: 0.8rem; color: var(--muted); }
+.stat b { font-family: var(--font-num); font-size: 1.4rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { .primary:active { transform: none; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <p class="welcome">Welcome to Nahid's World</p>
+  <header>
+    <h1>মগজ কুইজ</h1>
+    <div class="scores">
+      <div class="score"><span>স্কোর</span><b id="score">০</b></div>
+      <div class="score"><span>সেরা</span><b id="best">০</b></div>
+    </div>
+  </header>
+
+  <section class="card" id="intro">
+    <h2>নিজের জ্ঞান পরীক্ষা করো</h2>
+    <p>২০টা প্রশ্ন, ৫টা লেভেল। সহজ দিয়ে শুরু, শেষে বেশ কঠিন।</p>
+    <ul class="rules">
+      <li>প্রতিটা প্রশ্নে সময় সীমিত, লেভেল বাড়লে সময় কমে।</li>
+      <li>তিনটা ভুল করলে খেলা শেষ।</li>
+      <li>একবার "৫০:৫০" ব্যবহার করে দুটো ভুল অপশন বাদ দিতে পারবে।</li>
+      <li>দ্রুত সঠিক উত্তর দিলে বেশি পয়েন্ট।</li>
+    </ul>
+    <button class="primary" id="start" type="button">শুরু করো</button>
+  </section>
+
+  <section class="card" id="game" hidden>
+    <div class="status">
+      <span class="pill" id="level">লেভেল ১</span>
+      <span class="count" id="counter">১/২০</span>
+      <span class="lives" id="lives" aria-label="বাকি সুযোগ">♥♥♥</span>
+    </div>
+    <div class="bar" aria-hidden="true"><i id="fill"></i></div>
+    <p class="q" id="question"></p>
+    <div class="opts" id="opts"></div>
+    <p class="note" id="note" aria-live="polite"></p>
+    <div class="tools"><button class="ghost" id="fifty" type="button">৫০:৫০</button></div>
+  </section>
+
+  <section class="card" id="result" hidden>
+    <h2 id="r-title">খেলা শেষ</h2>
+    <div class="big" id="r-score">০</div>
+    <div class="statrow">
+      <div class="stat"><span>সঠিক উত্তর</span><b id="r-correct">০/২০</b></div>
+      <div class="stat"><span>সেরা স্কোর</span><b id="r-best">০</b></div>
+    </div>
+    <p id="r-msg"></p>
+    <button class="primary" id="again" type="button">আবার খেলো</button>
+  </section>
+</div>
+
+<script>
+(function () {
+  var POOL = {
+    1: [
+      { q: 'বাংলাদেশের রাজধানী কোনটি?', o: ['চট্টগ্রাম', 'ঢাকা', 'খুলনা', 'সিলেট'], a: 1 },
+      { q: 'এক সপ্তাহে কত দিন?', o: ['৫', '৬', '৭', '৮'], a: 2 },
+      { q: 'সূর্য কোন দিকে ওঠে?', o: ['পশ্চিম', 'উত্তর', 'দক্ষিণ', 'পূর্ব'], a: 3 },
+      { q: '৫ + ৭ = কত?', o: ['১১', '১২', '১৩', '১৪'], a: 1 },
+      { q: 'বাংলাদেশের জাতীয় ফল কোনটি?', o: ['আম', 'লিচু', 'কাঁঠাল', 'কলা'], a: 2 },
+      { q: 'পানির রাসায়নিক সংকেত কোনটি?', o: ['CO₂', 'H₂O', 'O₂', 'NaCl'], a: 1 }
+    ],
+    2: [
+      { q: 'বাংলাদেশের জাতীয় পশু কোনটি?', o: ['হাতি', 'হরিণ', 'রয়েল বেঙ্গল টাইগার', 'গরু'], a: 2 },
+      { q: '১২ × ৮ = কত?', o: ['৮৮', '৯৬', '১০৪', '১০৮'], a: 1 },
+      { q: 'পৃথিবীর সবচেয়ে বড় মহাসাগর কোনটি?', o: ['আটলান্টিক', 'ভারত মহাসাগর', 'প্রশান্ত মহাসাগর', 'আর্কটিক'], a: 2 },
+      { q: 'বাংলাদেশের স্বাধীনতা দিবস কবে?', o: ['১৬ ডিসেম্বর', '২১ ফেব্রুয়ারি', '২৬ মার্চ', '১৭ এপ্রিল'], a: 2 },
+      { q: 'প্রাপ্তবয়স্ক মানুষের দেহে হাড়ের সংখ্যা কত?', o: ['১০৬', '২০৬', '৩০৬', '৪০৬'], a: 1 },
+      { q: 'কোন গ্রহকে লাল গ্রহ বলা হয়?', o: ['শুক্র', 'বৃহস্পতি', 'মঙ্গল', 'শনি'], a: 2 }
+    ],
+    3: [
+      { q: 'পৃথিবীর সবচেয়ে উঁচু পর্বতশৃঙ্গ কোনটি?', o: ['কে-টু', 'মাউন্ট এভারেস্ট', 'কিলিমানজারো', 'ম্যাটারহর্ন'], a: 1 },
+      { q: 'বাংলাদেশের জাতীয় সংগীতের রচয়িতা কে?', o: ['কাজী নজরুল ইসলাম', 'জসীমউদ্দীন', 'রবীন্দ্রনাথ ঠাকুর', 'সুকান্ত ভট্টাচার্য'], a: 2 },
+      { q: 'আলোর গতি প্রায় কত?', o: ['প্রতি সেকেন্ডে ৩০ হাজার কিমি', 'প্রতি সেকেন্ডে ৩ লক্ষ কিমি', 'প্রতি সেকেন্ডে ৩০ লক্ষ কিমি', 'প্রতি সেকেন্ডে ৩ হাজার কিমি'], a: 1 },
+      { q: '১৫ এর ২০% কত?', o: ['২', '৩', '৫', '৭.৫'], a: 1 },
+      { q: 'কোনটি মৌলিক সংখ্যা?', o: ['৫১', '৫৭', '৬১', '৬৩'], a: 2 },
+      { q: 'সালোকসংশ্লেষণে উদ্ভিদ কোন গ্যাস গ্রহণ করে?', o: ['অক্সিজেন', 'নাইট্রোজেন', 'কার্বন ডাই অক্সাইড', 'হাইড্রোজেন'], a: 2 }
+    ],
+    4: [
+      { q: 'প্রথম মানুষ চাঁদে পা রাখেন কোন সালে?', o: ['১৯৫৭', '১৯৬৯', '১৯৭৫', '১৯৮১'], a: 1 },
+      { q: 'বাংলাদেশের সংবিধান কার্যকর হয় কবে?', o: ['১৬ ডিসেম্বর ১৯৭১', '৪ নভেম্বর ১৯৭২', '১৬ ডিসেম্বর ১৯৭২', '২৬ মার্চ ১৯৭২'], a: 2 },
+      { q: '√১৪৪ + ৩² = কত?', o: ['১৫', '১৮', '২১', '২৭'], a: 2 },
+      { q: 'রক্তে অক্সিজেন বহন করে কোনটি?', o: ['প্লাজমা', 'হিমোগ্লোবিন', 'ইনসুলিন', 'অ্যান্টিবডি'], a: 1 },
+      { q: 'কোন মৌলের পারমাণবিক সংখ্যা ১?', o: ['হিলিয়াম', 'অক্সিজেন', 'হাইড্রোজেন', 'কার্বন'], a: 2 },
+      { q: 'গীতাঞ্জলির জন্য রবীন্দ্রনাথ ঠাকুর নোবেল পুরস্কার পান কোন সালে?', o: ['১৯০১', '১৯১৩', '১৯২১', '১৯৩০'], a: 1 }
+    ],
+    5: [
+      { q: 'পৃথিবীর বায়ুমণ্ডলে সবচেয়ে বেশি কোন গ্যাস আছে?', o: ['অক্সিজেন', 'কার্বন ডাই অক্সাইড', 'নাইট্রোজেন', 'আর্গন'], a: 2 },
+      { q: 'ধারাটির পরের সংখ্যা কত? ২, ৬, ১৮, ৫৪, ?', o: ['১০৮', '১৪৪', '১৬২', '২১৬'], a: 2 },
+      { q: 'ড. মুহাম্মদ ইউনূস নোবেল শান্তি পুরস্কার পান কোন সালে?', o: ['২০০২', '২০০৬', '২০১০', '২০১৪'], a: 1 },
+      { q: '৫টা মেশিন ৫ মিনিটে ৫টা জিনিস বানায়। ১০০টা মেশিন ১০০টা জিনিস বানাতে কত মিনিট নেবে?', o: ['৫ মিনিট', '২০ মিনিট', '১০০ মিনিট', '১ মিনিট'], a: 0 },
+      { q: 'শব্দের গতি কোন মাধ্যমে সবচেয়ে বেশি?', o: ['বায়ু', 'পানি', 'কঠিন পদার্থ', 'শূন্যস্থান'], a: 2 },
+      { q: 'π (পাই) এর মান দুই দশমিক ঘর পর্যন্ত কত?', o: ['৩.১২', '৩.১৪', '৩.১৬', '৩.২৪'], a: 1 }
+    ]
+  };
+  var LEVEL_NAMES = ['', 'সহজ', 'মাঝারি', 'কঠিন', 'খুব কঠিন', 'বিশেষজ্ঞ'];
+  var TIME = [0, 20, 18, 16, 14, 12];
+  var LABELS = ['ক', 'খ', 'গ', 'ঘ'];
+  var PER_LEVEL = 4, LEVELS = 5, TOTAL = PER_LEVEL * LEVELS;
+
+  function $(id) { return document.getElementById(id); }
+  function bn(n) { try { return Number(n).toLocaleString('bn-BD'); } catch (e) { return String(n); } }
+  function shuffle(a) {
+    a = a.slice();
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+
+  var intro = $('intro'), game = $('game'), result = $('result');
+  var scoreEl = $('score'), bestEl = $('best'), levelEl = $('level'), counterEl = $('counter'), livesEl = $('lives');
+  var fill = $('fill'), qEl = $('question'), optsEl = $('opts'), noteEl = $('note'), fiftyBtn = $('fifty');
+
+  var best = 0;
+  try { best = parseInt(localStorage.getItem('quiz-best'), 10) || 0; } catch (e) {}
+  bestEl.textContent = bn(best);
+
+  var list, idx, lives, score, right, used50, locked, cur, remaining, limit, raf, lastT;
+
+  // Sound
+  var actx = null;
+  function initAudio() {
+    try {
+      if (!actx) { var AC = window.AudioContext || window.webkitAudioContext; if (AC) actx = new AC(); }
+      if (actx && actx.state === 'suspended') actx.resume();
+    } catch (e) { actx = null; }
+  }
+  function tone(freqs, dur) {
+    if (!actx) return;
+    try {
+      var t = actx.currentTime;
+      freqs.forEach(function (f, i) {
+        var o = actx.createOscillator(), g = actx.createGain();
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(f, t + i * dur);
+        g.gain.setValueAtTime(0.0001, t + i * dur);
+        g.gain.exponentialRampToValueAtTime(0.14, t + i * dur + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + i * dur + dur);
+        o.connect(g); g.connect(actx.destination);
+        o.start(t + i * dur); o.stop(t + i * dur + dur + 0.02);
+      });
+    } catch (e) {}
+  }
+
+  function show(which) {
+    intro.hidden = which !== 'intro';
+    game.hidden = which !== 'game';
+    result.hidden = which !== 'result';
+  }
+
+  function newGame() {
+    initAudio();
+    list = [];
+    for (var l = 1; l <= LEVELS; l++) {
+      shuffle(POOL[l]).slice(0, PER_LEVEL).forEach(function (q) { list.push({ level: l, q: q.q, o: q.o, a: q.a }); });
+    }
+    idx = 0; lives = 3; score = 0; right = 0; used50 = false;
+    scoreEl.textContent = bn(0);
+    fiftyBtn.disabled = false;
+    show('game');
+    showQuestion();
+  }
+
+  function renderLives() {
+    var s = '';
+    for (var i = 0; i < 3; i++) s += i < lives ? '♥' : '♡';
+    livesEl.textContent = s;
+  }
+
+  function showQuestion() {
+    cur = list[idx];
+    locked = false;
+    levelEl.textContent = 'লেভেল ' + bn(cur.level) + ' · ' + LEVEL_NAMES[cur.level];
+    counterEl.textContent = bn(idx + 1) + '/' + bn(TOTAL);
+    renderLives();
+    qEl.textContent = cur.q;
+    noteEl.textContent = '';
+    noteEl.className = 'note';
+    var order = shuffle([0, 1, 2, 3]);
+    cur.map = order;
+    optsEl.innerHTML = '';
+    order.forEach(function (orig, pos) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'opt';
+      b.setAttribute('data-pos', pos);
+      var k = document.createElement('span'); k.className = 'k'; k.textContent = LABELS[pos];
+      var t = document.createElement('span'); t.textContent = cur.o[orig];
+      b.appendChild(k); b.appendChild(t);
+      b.addEventListener('click', function () { answer(pos); });
+      optsEl.appendChild(b);
+    });
+    fiftyBtn.disabled = used50;
+    limit = TIME[cur.level];
+    remaining = limit;
+    fill.style.transform = 'scaleX(1)';
+    fill.classList.remove('low');
+    lastT = performance.now();
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(tick);
+  }
+
+  function tick(t) {
+    if (locked) return;
+    var dt = Math.min(0.1, (t - lastT) / 1000);
+    lastT = t;
+    remaining -= dt;
+    if (remaining <= 0) { remaining = 0; fill.style.transform = 'scaleX(0)'; answer(-1); return; }
+    var f = remaining / limit;
+    fill.style.transform = 'scaleX(' + f + ')';
+    fill.classList.toggle('low', f < 0.25);
+    raf = requestAnimationFrame(tick);
+  }
+
+  function answer(pos) {
+    if (locked) return;
+    locked = true;
+    cancelAnimationFrame(raf);
+    var btns = optsEl.querySelectorAll('.opt');
+    var correctPos = cur.map.indexOf(cur.a);
+    btns.forEach(function (b) { b.disabled = true; });
+    fiftyBtn.disabled = true;
+    if (pos === correctPos) {
+      var pts = cur.level * 10 + Math.round(remaining);
+      score += pts; right += 1;
+      scoreEl.textContent = bn(score);
+      btns[pos].classList.add('correct');
+      noteEl.textContent = 'সঠিক! +' + bn(pts) + ' পয়েন্ট';
+      noteEl.className = 'note good';
+      tone([660, 880], 0.09);
+    } else {
+      lives -= 1;
+      renderLives();
+      if (pos >= 0) btns[pos].classList.add('wrong');
+      btns[correctPos].classList.add('correct');
+      noteEl.textContent = pos < 0 ? 'সময় শেষ!' : 'ভুল উত্তর';
+      noteEl.className = 'note bad';
+      tone([260, 190], 0.14);
+    }
+    setTimeout(next, 1400);
+  }
+
+  function next() {
+    if (lives <= 0 || idx >= TOTAL - 1) { finish(); return; }
+    idx += 1;
+    showQuestion();
+  }
+
+  function finish() {
+    var done = lives > 0;
+    if (score > best) {
+      best = score;
+      bestEl.textContent = bn(best);
+      try { localStorage.setItem('quiz-best', String(best)); } catch (e) {}
+    }
+    $('r-title').textContent = done ? 'অভিনন্দন, সব শেষ করেছ!' : 'খেলা শেষ';
+    $('r-score').textContent = bn(score);
+    $('r-correct').textContent = bn(right) + '/' + bn(TOTAL);
+    $('r-best').textContent = bn(best);
+    var msg;
+    if (right >= 18) msg = 'অসাধারণ! তুমি সত্যিই জ্ঞানী।';
+    else if (right >= 12) msg = 'দারুণ খেলেছ। আরেকবার চেষ্টা করলে আরও ভালো হবে।';
+    else if (right >= 6) msg = 'ভালো শুরু। আবার খেলে স্কোর বাড়িয়ে নাও।';
+    else msg = 'চিন্তা নেই, প্রশ্নগুলো প্রতিবার আলাদা আসে। আবার চেষ্টা করো।';
+    $('r-msg').textContent = msg;
+    show('result');
+  }
+
+  fiftyBtn.addEventListener('click', function () {
+    if (used50 || locked) return;
+    used50 = true;
+    fiftyBtn.disabled = true;
+    var correctPos = cur.map.indexOf(cur.a);
+    var wrongs = shuffle([0, 1, 2, 3].filter(function (p) { return p !== correctPos; })).slice(0, 2);
+    var btns = optsEl.querySelectorAll('.opt');
+    wrongs.forEach(function (p) { btns[p].classList.add('dim'); btns[p].disabled = true; });
+  });
+
+  $('start').addEventListener('click', newGame);
+  $('again').addEventListener('click', newGame);
+
+  document.addEventListener('keydown', function (e) {
+    if (game.hidden || locked) return;
+    var n = parseInt(e.key, 10);
+    if (n >= 1 && n <= 4) {
+      var b = optsEl.querySelectorAll('.opt')[n - 1];
+      if (b && !b.disabled) answer(n - 1);
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

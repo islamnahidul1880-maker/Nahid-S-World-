@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nahid's World</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;700&display=swap">
+<style>
+:root { --bg: #0e1a17; --panel: #14261f; --grid: #1b3329; --fg: #e6f1ea; --muted: #8fa89b; --accent: #7ddc9a; --accent-soft: #c8f5d5; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif; line-height: 1.5; padding: 28px 16px; }
+.wrap { max-width: 460px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+h1 { margin: 0; text-align: center; font-size: 1.8rem; line-height: 1.25; color: var(--accent-soft); text-wrap: balance; padding-bottom: 12px; border-bottom: 2px solid var(--grid); }
+p.sub { margin: 0; text-align: center; color: var(--muted); }
+a.game { display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: var(--fg); background: var(--panel); border: 2px solid var(--grid); border-radius: 12px; padding: 16px 18px; }
+a.game:hover, a.game:focus-visible { border-color: var(--accent); outline: none; }
+a.game b { font-size: 1.3rem; }
+a.game span { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Welcome to Nahid's World</h1>
+  <p class="sub">একটা গেম বেছে নাও আর খেলা শুরু করো।</p>
+  <a class="game" href="snake.html"><b>সাপ খেলা</b><span>আপেল খেয়ে সাপকে বড় করো।</span></a>
+  <a class="game" href="quiz.html"><b>মগজ কুইজ</b><span>সহজ থেকে কঠিন ২০টা প্রশ্ন।</span></a>
+</div>
+</body>
+</html>
