@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>সাপ খেলা</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;700&family=DM+Mono:wght@500&display=swap">
+<style>
+/* Layout: one centered column. Welcome line, header (title + scores), square board with overlay, then a thumb-sized D-pad. Single dark look by choice, like a night garden. */
+:root {
+  --bg: #0e1a17;
+  --panel: #14261f;
+  --grid: #1b3329;
+  --fg: #e6f1ea;
+  --muted: #8fa89b;
+  --snake: #7ddc9a;
+  --snake-head: #c8f5d5;
+  --food: #ff7a59;
+  --btn: #1d3a2e;
+  --btn-active: #2b5642;
+  --font-body: "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif;
+  --font-num: "DM Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: auto; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  padding-block: 20px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-tap-highlight-color: transparent;
+}
+.wrap { max-width: 420px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.welcome { margin: 0; text-align: center; font-size: 1.5rem; font-weight: 700; line-height: 1.25; color: var(--snake-head); text-wrap: balance; padding-bottom: 12px; border-bottom: 2px solid var(--grid); }
+header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { margin: 0; font-size: 2rem; line-height: 1.1; font-weight: 700; text-wrap: balance; }
+.scores { display: flex; gap: 20px; }
+.score { display: flex; flex-direction: column; align-items: flex-end; }
+.score span { font-size: 0.8rem; color: var(--muted); letter-spacing: 0.04em; }
+.score b { font-family: var(--font-num); font-size: 1.5rem; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.board { position: relative; width: 100%; aspect-ratio: 1; max-width: 100%; border-radius: 10px; overflow: hidden; background: var(--panel); border: 2px solid var(--grid); }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 20px; text-align: center; background: rgba(14, 26, 23, 0.82); }
+.overlay h2 { margin: 0; font-size: 1.6rem; text-wrap: balance; }
+.overlay p { margin: 0; color: var(--muted); max-width: 28ch; }
+.primary { font: inherit; font-weight: 700; font-size: 1.1rem; color: #0e1a17; background: var(--snake); border: 0; border-radius: 8px; padding: 10px 28px; cursor: pointer; }
+.primary:active { transform: scale(0.97); }
+.primary:focus-visible, .pad button:focus-visible, .tools button:focus-visible { outline: 3px solid var(--snake-head); outline-offset: 2px; }
+.pad { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 8px; width: 220px; max-width: 100%; margin: 0 auto; }
+.pad button { height: 64px; font-size: 1.5rem; color: var(--fg); background: var(--btn); border: 0; border-radius: 10px; cursor: pointer; touch-action: manipulation; }
+.pad button:active { background: var(--btn-active); }
+.pad .up { grid-column: 2; grid-row: 1; }
+.pad .left { grid-column: 1; grid-row: 2; }
+.pad .down { grid-column: 2; grid-row: 2; }
+.pad .right { grid-column: 3; grid-row: 2; }
+.tools { display: flex; justify-content: center; }
+.tools button { font: inherit; color: var(--muted); background: transparent; border: 1px solid var(--grid); border-radius: 8px; padding: 6px 18px; cursor: pointer; }
+.hint { margin: 0; text-align: center; color: var(--muted); font-size: 0.9rem; }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <p class="welcome">Welcome to Nahid's World</p>
+  <header>
+    <h1>সাপ খেলা</h1>
+    <div class="scores">
+      <div class="score"><span>স্কোর</span><b id="score">০</b></div>
+      <div class="score"><span>সেরা</span><b id="best">০</b></div>
+    </div>
+  </header>
+
+  <div class="board" id="board">
+    <canvas id="cv" aria-label="খেলার বোর্ড"></canvas>
+    <div class="overlay" id="overlay">
+      <h2 id="ov-title">সাপ খেলা</h2>
+      <p id="ov-text">আপেল খেয়ে সাপকে বড় করো। দেয়াল বা নিজের শরীরে ধাক্কা খেয়ো না।</p>
+      <button class="primary" id="start" type="button">শুরু করো</button>
+    </div>
+  </div>
+
+  <div class="pad" aria-label="দিক নিয়ন্ত্রণ">
+    <button class="up" type="button" data-dir="up" aria-label="উপরে">▲</button>
+    <button class="left" type="button" data-dir="left" aria-label="বামে">◀</button>
+    <button class="down" type="button" data-dir="down" aria-label="নিচে">▼</button>
+    <button class="right" type="button" data-dir="right" aria-label="ডানে">▶</button>
+  </div>
+
+  <div class="tools"><button id="pause" type="button">বিরতি</button></div>
+  <p class="hint">বোর্ডে সোয়াইপ করো, বাটন চাপো, বা কিবোর্ডের অ্যারো কী ব্যবহার করো।</p>
+</div>
+
+<script>
+(function () {
+  var N = 20;
+  var cv = document.getElementById('cv');
+  var ctx = cv.getContext('2d');
+  var overlay = document.getElementById('overlay');
+  var ovTitle = document.getElementById('ov-title');
+  var ovText = document.getElementById('ov-text');
+  var startBtn = document.getElementById('start');
+  var pauseBtn = document.getElementById('pause');
+  var scoreEl = document.getElementById('score');
+  var bestEl = document.getElementById('best');
+  var css = getComputedStyle(document.documentElement);
+  function col(n) { return css.getPropertyValue(n).trim(); }
+  var C = { grid: col('--grid') };
+
+  // Snake skin colors (rgb)
+  var BASE = [98, 176, 74], DARK = [38, 88, 44], HEAD = [78, 146, 62];
+
+  function bn(n) { try { return Number(n).toLocaleString('bn-BD'); } catch (e) { return String(n); } }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function mix(c1, c2, t) {
+    return 'rgb(' + Math.round(lerp(c1[0], c2[0], t)) + ',' + Math.round(lerp(c1[1], c2[1], t)) + ',' + Math.round(lerp(c1[2], c2[2], t)) + ')';
+  }
+
+  // Sound
+  var actx = null;
+  function initAudio() {
+    try {
+      if (!actx) { var AC = window.AudioContext || window.webkitAudioContext; if (AC) actx = new AC(); }
+      if (actx && actx.state === 'suspended') actx.resume();
+    } catch (e) { actx = null; }
+  }
+  function playEat() {
+    if (!actx) return;
+    try {
+      var t = actx.currentTime;
+      var o = actx.createOscillator();
+      var g = actx.createGain();
+      o.type = 'square';
+      o.frequency.setValueAtTime(520, t);
+      o.frequency.exponentialRampToValueAtTime(980, t + 0.09);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.12, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+      o.connect(g); g.connect(actx.destination);
+      o.start(t); o.stop(t + 0.16);
+    } catch (e) {}
+  }
+
+  var DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+  var ANG = { up: -Math.PI / 2, down: Math.PI / 2, left: Math.PI, right: 0 };
+  var snake, prev, dir, queue, food, score, best = 0, state = 'idle', tickMs, last = 0, elapsed = 0, curAlpha = 1;
+
+  try { best = parseInt(localStorage.getItem('snake-best'), 10) || 0; } catch (e) {}
+  bestEl.textContent = bn(best);
+
+  function resize() {
+    var dpr = window.devicePixelRatio || 1;
+    var w = cv.clientWidth;
+    cv.width = Math.round(w * dpr);
+    cv.height = Math.round(w * dpr);
+    draw(curAlpha, performance.now());
+  }
+
+  function reset() {
+    snake = [[10, 10], [9, 10], [8, 10]];
+    prev = snake.slice();
+    dir = 'right';
+    queue = [];
+    score = 0;
+    tickMs = 260;
+    curAlpha = 1;
+    scoreEl.textContent = bn(0);
+    placeFood();
+  }
+
+  function placeFood() {
+    var free = [];
+    for (var x = 0; x < N; x++) for (var y = 0; y < N; y++) {
+      if (!snake.some(function (s) { return s[0] === x && s[1] === y; })) free.push([x, y]);
+    }
+    food = free.length ? free[Math.floor(Math.random() * free.length)] : null;
+  }
+
+  function turn(d) {
+    if (state !== 'running') return;
+    var ref = queue.length ? queue[queue.length - 1] : dir;
+    var a = DIRS[ref], b = DIRS[d];
+    if (a[0] + b[0] === 0 && a[1] + b[1] === 0) return;
+    if (d === ref) return;
+    if (queue.length < 2) queue.push(d);
+  }
+
+  function step() {
+    if (queue.length) dir = queue.shift();
+    prev = snake.slice();
+    var d = DIRS[dir];
+    var head = [snake[0][0] + d[0], snake[0][1] + d[1]];
+    var eating = food && head[0] === food[0] && head[1] === food[1];
+    var body = eating ? snake : snake.slice(0, -1);
+    var hit = head[0] < 0 || head[1] < 0 || head[0] >= N || head[1] >= N ||
+      body.some(function (s) { return s[0] === head[0] && s[1] === head[1]; });
+    if (hit) { gameOver(); return; }
+    snake.unshift(head);
+    if (eating) {
+      score += 1;
+      playEat();
+      scoreEl.textContent = bn(score);
+      tickMs = Math.max(80, 260 - score * 6);
+      placeFood();
+    } else {
+      snake.pop();
+    }
+  }
+
+  function gameOver() {
+    state = 'over';
+    if (score > best) {
+      best = score;
+      bestEl.textContent = bn(best);
+      try { localStorage.setItem('snake-best', String(best)); } catch (e) {}
+    }
+    ovTitle.textContent = 'খেলা শেষ';
+    ovText.textContent = 'তোমার স্কোর ' + bn(score) + '। আবার চেষ্টা করবে?';
+    startBtn.textContent = 'আবার খেলো';
+    overlay.hidden = false;
+    pauseBtn.disabled = true;
+    curAlpha = 1;
+    draw(1, performance.now());
+  }
+
+  function start() {
+    initAudio();
+    reset();
+    state = 'running';
+    overlay.hidden = true;
+    pauseBtn.disabled = false;
+    pauseBtn.textContent = 'বিরতি';
+    last = performance.now();
+    requestAnimationFrame(loop);
+  }
+
+  function togglePause() {
+    if (state === 'running') {
+      state = 'paused';
+      elapsed = performance.now() - last;
+      ovTitle.textContent = 'বিরতি';
+      ovText.textContent = 'চালিয়ে যেতে বোতাম চাপো।';
+      startBtn.textContent = 'চালিয়ে যাও';
+      overlay.hidden = false;
+      pauseBtn.textContent = 'চালিয়ে যাও';
+    } else if (state === 'paused') {
+      resume();
+    }
+  }
+  function resume() {
+    state = 'running';
+    overlay.hidden = true;
+    pauseBtn.textContent = 'বিরতি';
+    last = performance.now() - elapsed;
+    requestAnimationFrame(loop);
+  }
+
+  function loop(t) {
+    if (state !== 'running') return;
+    if (t - last >= tickMs) {
+      last += tickMs;
+      if (t - last > tickMs) last = t;
+      step();
+      if (state !== 'running') return;
+    }
+    curAlpha = Math.max(0, Math.min(1, (t - last) / tickMs));
+    draw(curAlpha, t);
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- Drawing ----------
+  function chaikin(pts, n) {
+    for (var k = 0; k < n; k++) {
+      var out = [pts[0]];
+      for (var i = 0; i < pts.length - 1; i++) {
+        var a = pts[i], b = pts[i + 1];
+        out.push([a[0] * 0.75 + b[0] * 0.25, a[1] * 0.75 + b[1] * 0.25]);
+        out.push([a[0] * 0.25 + b[0] * 0.75, a[1] * 0.25 + b[1] * 0.75]);
+      }
+      out.push(pts[pts.length - 1]);
+      pts = out;
+    }
+    return pts;
+  }
+
+  function resample(pts, ds) {
+    var out = [{ x: pts[0][0], y: pts[0][1], d: 0 }];
+    var d = 0, next = ds;
+    for (var i = 0; i < pts.length - 1; i++) {
+      var ax = pts[i][0], ay = pts[i][1], bx = pts[i + 1][0], by = pts[i + 1][1];
+      var len = Math.hypot(bx - ax, by - ay);
+      if (len === 0) continue;
+      while (next <= d + len) {
+        var t = (next - d) / len;
+        out.push({ x: lerp(ax, bx, t), y: lerp(ay, by, t), d: next });
+        next += ds;
+      }
+      d += len;
+    }
+    var lp = pts[pts.length - 1];
+    out.push({ x: lp[0], y: lp[1], d: d });
+    return { samples: out, total: d };
+  }
+
+  function drawFood(t, s) {
+    if (!food) return;
+    var cx = (food[0] + 0.5) * s, cy = (food[1] + 0.5) * s + s * 0.03;
+    var r = s * 0.33 * (1 + 0.04 * Math.sin(t / 260));
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath(); ctx.ellipse(cx, cy + r * 0.95, r * 0.8, r * 0.22, 0, 0, Math.PI * 2); ctx.fill();
+    var g = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.1, cx, cy, r * 1.15);
+    g.addColorStop(0, '#ff9c84'); g.addColorStop(0.45, '#e5392d'); g.addColorStop(1, '#8f1a17');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(cx - r * 0.28, cy, r * 0.78, 0, Math.PI * 2); ctx.arc(cx + r * 0.28, cy, r * 0.78, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#5a3a22'; ctx.lineWidth = Math.max(1.5, s * 0.05); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx, cy - r * 0.7); ctx.quadraticCurveTo(cx + r * 0.05, cy - r * 1.1, cx + r * 0.2, cy - r * 1.3); ctx.stroke();
+    ctx.fillStyle = '#5cb64c';
+    ctx.beginPath(); ctx.ellipse(cx + r * 0.55, cy - r * 1.0, r * 0.42, r * 0.2, -0.5, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawSnake(alpha, t, s) {
+    var pts = [];
+    for (var i = 0; i < snake.length; i++) {
+      var p0 = prev[Math.min(i, prev.length - 1)], p1 = snake[i];
+      pts.push([(lerp(p0[0], p1[0], alpha) + 0.5) * s, (lerp(p0[1], p1[1], alpha) + 0.5) * s]);
+    }
+    pts = chaikin(pts, 2);
+    var rs = resample(pts, s * 0.16);
+    var S = rs.samples, total = rs.total;
+    var R = s * 0.4;
+
+    // soft shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath();
+    for (var k = 0; k < S.length; k += 2) {
+      var sr = R * 0.9;
+      ctx.moveTo(S[k].x + sr, S[k].y + s * 0.07);
+      ctx.arc(S[k].x, S[k].y + s * 0.07, sr, 0, Math.PI * 2);
+    }
+    ctx.fill();
+
+    // body, tail first so the head end overlaps
+    var radii = [];
+    for (var j = S.length - 1; j >= 0; j--) {
+      var q = S[j];
+      var taper = Math.min(1, (total - q.d) / (s * 4.5));
+      var r = R * (0.2 + 0.8 * Math.pow(taper, 0.75));
+      radii[j] = r;
+      var v = (1 + Math.cos(q.d / (s * 1.15) * Math.PI * 2)) / 2;
+      ctx.fillStyle = mix(BASE, DARK, Math.pow(v, 3) * 0.95);
+      ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, Math.PI * 2); ctx.fill();
+    }
+    // highlight ridge along the back
+    ctx.fillStyle = 'rgba(255,255,255,0.11)';
+    ctx.beginPath();
+    for (var m = 0; m < S.length; m++) {
+      var hr = radii[m] * 0.42;
+      ctx.moveTo(S[m].x - radii[m] * 0.2 + hr, S[m].y - radii[m] * 0.3);
+      ctx.arc(S[m].x - radii[m] * 0.2, S[m].y - radii[m] * 0.3, hr, 0, Math.PI * 2);
+    }
+    ctx.fill();
+
+    // head
+    var hx = S[0].x, hy = S[0].y;
+    var kk = Math.min(S.length - 1, 4);
+    var ang = (S.length > 1 && (S[0].x !== S[kk].x || S[0].y !== S[kk].y))
+      ? Math.atan2(S[0].y - S[kk].y, S[0].x - S[kk].x) : ANG[dir];
+    ctx.save();
+    ctx.translate(hx, hy);
+    ctx.rotate(ang);
+    // tongue flick
+    var ph = (t % 1500) / 1500;
+    var tl = (state === 'running' && ph < 0.22) ? Math.sin(ph / 0.22 * Math.PI) * s * 0.55 : 0;
+    if (tl > 1) {
+      ctx.strokeStyle = '#e23b55'; ctx.lineWidth = Math.max(1.5, s * 0.05); ctx.lineCap = 'round';
+      var tx = s * 0.4 + tl;
+      ctx.beginPath(); ctx.moveTo(s * 0.4, 0); ctx.lineTo(tx, 0);
+      ctx.moveTo(tx, 0); ctx.lineTo(tx + s * 0.14, -s * 0.09);
+      ctx.moveTo(tx, 0); ctx.lineTo(tx + s * 0.14, s * 0.09);
+      ctx.stroke();
+    }
+    // head shape
+    var hg = ctx.createRadialGradient(s * 0.05, -s * 0.12, s * 0.05, 0, 0, s * 0.6);
+    hg.addColorStop(0, mix(HEAD, [190, 230, 140], 0.45)); hg.addColorStop(1, mix(HEAD, DARK, 0.45));
+    ctx.fillStyle = hg;
+    ctx.beginPath(); ctx.ellipse(s * 0.1, 0, s * 0.5, s * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+    // eyes
+    var ey = s * 0.2;
+    [-1, 1].forEach(function (sg) {
+      ctx.fillStyle = '#e9c548';
+      ctx.beginPath(); ctx.arc(s * 0.2, sg * ey, s * 0.095, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#111';
+      ctx.beginPath(); ctx.ellipse(s * 0.21, sg * ey, s * 0.03, s * 0.065, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#1b3a1a';
+      ctx.beginPath(); ctx.arc(s * 0.5, sg * s * 0.09, s * 0.022, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  function draw(alpha, t) {
+    if (!snake) return;
+    var s = cv.width / N;
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.fillStyle = C.grid;
+    for (var x = 0; x < N; x++) for (var y = 0; y < N; y++) {
+      if ((x + y) % 2 === 0) ctx.fillRect(x * s, y * s, s, s);
+    }
+    drawFood(t, s);
+    drawSnake(alpha, t, s);
+  }
+
+  // ---------- Input ----------
+  startBtn.addEventListener('click', function () {
+    if (state === 'paused') resume(); else start();
+  });
+  pauseBtn.addEventListener('click', togglePause);
+  pauseBtn.disabled = true;
+
+  document.querySelectorAll('.pad button').forEach(function (b) {
+    b.addEventListener('click', function () { turn(b.getAttribute('data-dir')); });
+  });
+
+  var KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right' };
+  window.addEventListener('keydown', function (e) {
+    if (e.key === ' ') {
+      if (state === 'running' || state === 'paused') { e.preventDefault(); togglePause(); }
+      return;
+    }
+    var d = KEYS[e.key];
+    if (d) { e.preventDefault(); turn(d); }
+  });
+
+  var sx = 0, sy = 0, touching = false;
+  cv.addEventListener('pointerdown', function (e) { sx = e.clientX; sy = e.clientY; touching = true; });
+  cv.addEventListener('pointermove', function (e) {
+    if (!touching) return;
+    var dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+    if (Math.abs(dx) > Math.abs(dy)) turn(dx > 0 ? 'right' : 'left'); else turn(dy > 0 ? 'down' : 'up');
+    sx = e.clientX; sy = e.clientY;
+  });
+  function endTouch() { touching = false; }
+  cv.addEventListener('pointerup', endTouch);
+  cv.addEventListener('pointercancel', endTouch);
+
+  document.addEventListener('visibilitychange', function () { if (document.hidden && state === 'running') togglePause(); });
+  window.addEventListener('resize', resize);
+
+  reset();
+  resize();
+})();
+</script>
+
+</body>
+</html>
