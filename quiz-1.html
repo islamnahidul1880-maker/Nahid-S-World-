@@ -1,0 +1,851 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>মগজ কুইজ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;700&family=DM+Mono:wght@500&display=swap">
+<style>
+/* Layout: one centered column. Welcome line, header with score, then one of three screens (intro, question, result). Same night-garden palette as the snake game so the pages feel like one world. */
+:root {
+  --bg: #0e1a17;
+  --panel: #14261f;
+  --grid: #1b3329;
+  --fg: #e6f1ea;
+  --muted: #8fa89b;
+  --accent: #7ddc9a;
+  --accent-soft: #c8f5d5;
+  --btn: #1d3a2e;
+  --btn-active: #2b5642;
+  --good: #5ed38a;
+  --good-bg: #1d5236;
+  --bad: #ff7a59;
+  --bad-bg: #5a2a22;
+  --gold: #e9c548;
+  --font-body: "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif;
+  --font-num: "DM Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: auto; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  padding-block: 20px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-tap-highlight-color: transparent;
+}
+.wrap { max-width: 460px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.welcome { margin: 0; text-align: center; font-size: 1.5rem; font-weight: 700; line-height: 1.25; color: var(--accent-soft); text-wrap: balance; padding-bottom: 12px; border-bottom: 2px solid var(--grid); }
+header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { margin: 0; font-size: 2rem; line-height: 1.1; font-weight: 700; text-wrap: balance; }
+.scores { display: flex; gap: 20px; }
+.score { display: flex; flex-direction: column; align-items: flex-end; }
+.score span { font-size: 0.8rem; color: var(--muted); letter-spacing: 0.04em; }
+.score b { font-family: var(--font-num); font-size: 1.5rem; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1.2; }
+
+.card { background: var(--panel); border: 2px solid var(--grid); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.card h2 { margin: 0; font-size: 1.5rem; text-wrap: balance; }
+.card p { margin: 0; color: var(--muted); }
+.big { font-family: var(--font-num); font-size: 2.4rem; font-weight: 500; color: var(--accent-soft); line-height: 1.1; }
+ul.rules { margin: 0; padding-left: 1.2em; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+
+.primary { font: inherit; font-weight: 700; font-size: 1.1rem; color: #0e1a17; background: var(--accent); border: 0; border-radius: 8px; padding: 12px 28px; cursor: pointer; align-self: stretch; }
+.primary:active { transform: scale(0.98); }
+.ghost { font: inherit; color: var(--fg); background: transparent; border: 1px solid var(--grid); border-radius: 8px; padding: 8px 16px; cursor: pointer; }
+.ghost:disabled { opacity: 0.4; cursor: default; }
+button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
+
+.status { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.pill { font-size: 0.85rem; font-weight: 700; color: #0e1a17; background: var(--gold); border-radius: 999px; padding: 2px 12px; }
+.count { font-family: var(--font-num); color: var(--muted); font-variant-numeric: tabular-nums; }
+.lives { color: var(--bad); letter-spacing: 0.15em; font-size: 1.1rem; }
+.bar { height: 8px; border-radius: 999px; background: var(--grid); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 100%; background: var(--accent); border-radius: 999px; transform-origin: left; }
+.bar i.low { background: var(--bad); }
+.q { margin: 0; font-size: 1.25rem; font-weight: 700; line-height: 1.4; text-wrap: balance; }
+.opts { display: flex; flex-direction: column; gap: 10px; }
+.opt { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 54px; text-align: left; font: inherit; font-size: 1.05rem; color: var(--fg); background: var(--btn); border: 2px solid transparent; border-radius: 10px; padding: 10px 14px; cursor: pointer; touch-action: manipulation; }
+.opt:active { background: var(--btn-active); }
+.opt .k { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--grid); font-size: 0.9rem; font-weight: 700; color: var(--accent-soft); }
+.opt.correct { border-color: var(--good); background: var(--good-bg); }
+.opt.wrong { border-color: var(--bad); background: var(--bad-bg); }
+.opt.dim { opacity: 0.3; }
+.opt:disabled { cursor: default; }
+.note { min-height: 1.5em; margin: 0; text-align: center; font-weight: 700; }
+.note.good { color: var(--good); }
+.note.bad { color: var(--bad); }
+.tools { display: flex; justify-content: center; }
+.statrow { display: flex; gap: 12px; flex-wrap: wrap; }
+.stat { flex: 1 1 120px; background: var(--btn); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; }
+.stat span { font-size: 0.8rem; color: var(--muted); }
+.stat b { font-family: var(--font-num); font-size: 1.4rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { .primary:active { transform: none; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <p class="welcome">Welcome to Nahid's World</p>
+  <header>
+    <h1>মগজ কুইজ</h1>
+    <div class="scores">
+      <div class="score"><span>স্কোর</span><b id="score">০</b></div>
+      <div class="score"><span>সেরা</span><b id="best">০</b></div>
+    </div>
+  </header>
+
+  <section class="card" id="intro">
+    <h2>নিজের জ্ঞান পরীক্ষা করো</h2>
+    <p>২০টা আধুনিক প্রশ্ন, ৫টা লেভেল। প্রযুক্তি, বিজ্ঞান, গণিত আর বুদ্ধির ধাঁধা।</p>
+    <ul class="rules">
+      <li>প্রতিটা প্রশ্নে সময় সীমিত। কঠিন প্রশ্নে একটু বেশি সময় পাবে।</li>
+      <li>তিনটা ভুল করলে খেলা শেষ।</li>
+      <li>একবার "৫০:৫০" ব্যবহার করে দুটো ভুল অপশন বাদ দিতে পারবে।</li>
+      <li>দ্রুত সঠিক উত্তর দিলে বেশি পয়েন্ট।</li>
+    </ul>
+    <button class="primary" id="start" type="button">শুরু করো</button>
+  </section>
+
+  <section class="card" id="game" hidden>
+    <div class="status">
+      <span class="pill" id="level">লেভেল ১</span>
+      <span class="count" id="counter">১/২০</span>
+      <span class="lives" id="lives" aria-label="বাকি সুযোগ">♥♥♥</span>
+    </div>
+    <div class="bar" aria-hidden="true"><i id="fill"></i></div>
+    <p class="q" id="question"></p>
+    <div class="opts" id="opts"></div>
+    <p class="note" id="note" aria-live="polite"></p>
+    <div class="tools"><button class="ghost" id="fifty" type="button">৫০:৫০</button></div>
+  </section>
+
+  <section class="card" id="result" hidden>
+    <h2 id="r-title">খেলা শেষ</h2>
+    <div class="big" id="r-score">০</div>
+    <div class="statrow">
+      <div class="stat"><span>সঠিক উত্তর</span><b id="r-correct">০/২০</b></div>
+      <div class="stat"><span>সেরা স্কোর</span><b id="r-best">০</b></div>
+    </div>
+    <p id="r-msg"></p>
+    <button class="primary" id="again" type="button">আবার খেলো</button>
+  </section>
+</div>
+
+<script>
+(function () {
+  var POOL = {
+ "1": [
+  {
+   "q": "ফেসবুকের প্রতিষ্ঠাতা কে?",
+   "o": [
+    "ইলন মাস্ক",
+    "মার্ক জাকারবার্গ",
+    "বিল গেটস",
+    "জেফ বেজোস"
+   ],
+   "a": 1
+  },
+  {
+   "q": "কোনটি স্মার্টফোনের অপারেটিং সিস্টেম?",
+   "o": [
+    "মাইক্রোসফট ওয়ার্ড",
+    "ফটোশপ",
+    "অ্যান্ড্রয়েড",
+    "গুগল ম্যাপস"
+   ],
+   "a": 2
+  },
+  {
+   "q": "AI-এর পূর্ণরূপ কী?",
+   "o": [
+    "Automatic Internet",
+    "Artificial Intelligence",
+    "Advanced Input",
+    "Applied Instruction"
+   ],
+   "a": 1
+  },
+  {
+   "q": "ইন্টারনেটে ওয়েবসাইট দেখার সফটওয়্যারকে কী বলে?",
+   "o": [
+    "ব্রাউজার",
+    "ফোল্ডার",
+    "রাউটার",
+    "কিবোর্ড"
+   ],
+   "a": 0
+  },
+  {
+   "q": "ইউটিউব মূলত কীসের জন্য পরিচিত?",
+   "o": [
+    "অনলাইন কেনাকাটা",
+    "ভিডিও দেখা ও শেয়ার করা",
+    "টাকা পাঠানো",
+    "মানচিত্র দেখা"
+   ],
+   "a": 1
+  },
+  {
+   "q": "QR কোড সাধারণত কী দিয়ে স্ক্যান করা হয়?",
+   "o": [
+    "মাইক্রোফোন",
+    "ফোনের ক্যামেরা",
+    "চার্জার",
+    "হেডফোন"
+   ],
+   "a": 1
+  },
+  {
+   "q": "গুগল কোন ধরনের সেবার জন্য সবচেয়ে বেশি পরিচিত?",
+   "o": [
+    "সার্চ ইঞ্জিন",
+    "গেম কনসোল",
+    "ব্যাংকিং",
+    "টিভি চ্যানেল"
+   ],
+   "a": 0
+  },
+  {
+   "q": "বিকাশ ও নগদ মূলত কী কাজে ব্যবহার হয়?",
+   "o": [
+    "ছবি এডিটিং",
+    "মোবাইলে টাকা লেনদেন",
+    "গান শোনা",
+    "ভিডিও কল"
+   ],
+   "a": 1
+  },
+  {
+   "q": "চাঁদ পৃথিবীর কী?",
+   "o": [
+    "গ্রহ",
+    "তারা",
+    "উপগ্রহ",
+    "ধূমকেতু"
+   ],
+   "a": 2
+  },
+  {
+   "q": "ইমেইল ঠিকানায় '@' চিহ্নটি কী নির্দেশ করে?",
+   "o": [
+    "ব্যবহারকারী কোন ডোমেইনে আছে",
+    "পাসওয়ার্ড",
+    "ফোন নম্বর",
+    "ভাষা"
+   ],
+   "a": 0
+  }
+ ],
+ "2": [
+  {
+   "q": "ChatGPT কোন ধরনের প্রযুক্তির উদাহরণ?",
+   "o": [
+    "জেনারেটিভ এআই",
+    "ভিডিও এডিটর",
+    "অ্যান্টিভাইরাস",
+    "ডিজিটাল ক্যামেরা"
+   ],
+   "a": 0
+  },
+  {
+   "q": "ওয়েবপেজের কাঠামো তৈরির ভাষা কোনটি?",
+   "o": [
+    "HTML",
+    "Excel",
+    "PDF",
+    "JPEG"
+   ],
+   "a": 0
+  },
+  {
+   "q": "বিটকয়েন কী?",
+   "o": [
+    "ক্রিপ্টোকারেন্সি",
+    "মোবাইল কোম্পানি",
+    "গেমের নাম",
+    "ব্রাউজার"
+   ],
+   "a": 0
+  },
+  {
+   "q": "ISS বলতে কী বোঝায়?",
+   "o": [
+    "আন্তর্জাতিক মহাকাশ স্টেশন",
+    "ইন্টারনেট সিকিউরিটি সিস্টেম",
+    "ইন্টারন্যাশনাল সায়েন্স সোসাইটি",
+    "ইনফরমেশন স্টোরেজ সার্ভার"
+   ],
+   "a": 0
+  },
+  {
+   "q": "১ বাইটে কত বিট থাকে?",
+   "o": [
+    "৪",
+    "৮",
+    "১০",
+    "১৬"
+   ],
+   "a": 1
+  },
+  {
+   "q": "বাংলাদেশের প্রথম কৃত্রিম উপগ্রহের নাম কী?",
+   "o": [
+    "বঙ্গবন্ধু স্যাটেলাইট-১",
+    "সোনার বাংলা-১",
+    "মেঘনা-১",
+    "পদ্মা স্যাটেলাইট"
+   ],
+   "a": 0
+  },
+  {
+   "q": "গ্লোবাল ওয়ার্মিংয়ের অন্যতম প্রধান কারণ কোন গ্যাস?",
+   "o": [
+    "অক্সিজেন",
+    "নাইট্রোজেন",
+    "কার্বন ডাই অক্সাইড",
+    "হিলিয়াম"
+   ],
+   "a": 2
+  },
+  {
+   "q": "২৪০ এর ২৫% কত?",
+   "o": [
+    "৫০",
+    "৬০",
+    "৮০",
+    "১২০"
+   ],
+   "a": 1
+  },
+  {
+   "q": "টেসলা কোম্পানি মূলত কোন ধরনের গাড়ির জন্য বিখ্যাত?",
+   "o": [
+    "বৈদ্যুতিক গাড়ি",
+    "রেসিং বাইক",
+    "ট্রাক",
+    "সাইকেল"
+   ],
+   "a": 0
+  },
+  {
+   "q": "পদ্মা সেতু কোন নদীর ওপর নির্মিত?",
+   "o": [
+    "মেঘনা",
+    "যমুনা",
+    "পদ্মা",
+    "কর্ণফুলী"
+   ],
+   "a": 2
+  }
+ ],
+ "3": [
+  {
+   "q": "Python কী?",
+   "o": [
+    "প্রোগ্রামিং ভাষা",
+    "ভিডিও গেম",
+    "মোবাইল কোম্পানি",
+    "সার্চ ইঞ্জিন"
+   ],
+   "a": 0
+  },
+  {
+   "q": "CPU-র পূর্ণরূপ কী?",
+   "o": [
+    "Central Processing Unit",
+    "Computer Personal Unit",
+    "Central Power Utility",
+    "Control Program Update"
+   ],
+   "a": 0
+  },
+  {
+   "q": "GPS কীভাবে আপনার অবস্থান জানতে পারে?",
+   "o": [
+    "মোবাইল টাওয়ারের ছবি দেখে",
+    "স্যাটেলাইটের সংকেত থেকে",
+    "বাতাসের চাপ মেপে",
+    "ব্যাটারির চার্জ দেখে"
+   ],
+   "a": 1
+  },
+  {
+   "q": "মঙ্গল গ্রহে পাঠানো 'পারসিভারেন্স' রোভারটি কোন সংস্থার?",
+   "o": [
+    "ইসরো",
+    "নাসা",
+    "জাক্সা",
+    "স্পেসএক্স ছাড়া অন্য কেউ নয়"
+   ],
+   "a": 1
+  },
+  {
+   "q": "DNA-র গঠন দেখতে কেমন?",
+   "o": [
+    "ডাবল হেলিক্স (পেঁচানো সিঁড়ি)",
+    "সরল রেখা",
+    "গোল বৃত্ত",
+    "ত্রিভুজ"
+   ],
+   "a": 0
+  },
+  {
+   "q": "HTTPS-এর 'S' অক্ষরটি কী বোঝায়?",
+   "o": [
+    "Speed",
+    "Secure",
+    "Server",
+    "Simple"
+   ],
+   "a": 1
+  },
+  {
+   "q": "সংখ্যাধারা: ১, ১, ২, ৩, ৫, ৮, ? পরের সংখ্যা কত?",
+   "o": [
+    "১০",
+    "১২",
+    "১৩",
+    "১৫"
+   ],
+   "a": 2
+  },
+  {
+   "q": "২ এর ১০ ঘাত (২¹⁰) কত?",
+   "o": [
+    "১০০০",
+    "১০২৪",
+    "২০৪৮",
+    "৫১২"
+   ],
+   "a": 1
+  },
+  {
+   "q": "ভ্যাকসিন কীভাবে কাজ করে?",
+   "o": [
+    "দেহকে রোগের বিরুদ্ধে লড়াইয়ের প্রশিক্ষণ দেয়",
+    "রোগজীবাণু সরাসরি পুড়িয়ে ফেলে",
+    "রক্ত বদলে দেয়",
+    "হাড় শক্ত করে"
+   ],
+   "a": 0
+  },
+  {
+   "q": "অ্যান্ড্রয়েড অপারেটিং সিস্টেমের বর্তমান মালিক কোন প্রতিষ্ঠান?",
+   "o": [
+    "অ্যাপল",
+    "গুগল",
+    "মাইক্রোসফট",
+    "স্যামসাং"
+   ],
+   "a": 1
+  }
+ ],
+ "4": [
+  {
+   "q": "ব্লকচেইনের প্রধান বৈশিষ্ট্য কোনটি?",
+   "o": [
+    "লেনদেনের তথ্য একবার লিখলে বদলানো খুব কঠিন",
+    "কেবল একটি কম্পিউটারে থাকে",
+    "ছবি সংরক্ষণ করে",
+    "ইন্টারনেট ছাড়া চলে"
+   ],
+   "a": 0
+  },
+  {
+   "q": "বাইনারি সংখ্যা ১০১০ এর দশমিক মান কত?",
+   "o": [
+    "৬",
+    "৮",
+    "১০",
+    "১২"
+   ],
+   "a": 2
+  },
+  {
+   "q": "ডিপ লার্নিং কোন প্রযুক্তির ওপর ভিত্তি করে গড়া?",
+   "o": [
+    "নিউরাল নেটওয়ার্ক",
+    "লেজার প্রিন্টিং",
+    "রেডিও তরঙ্গ",
+    "ব্লুটুথ"
+   ],
+   "a": 0
+  },
+  {
+   "q": "জেমস ওয়েব স্পেস টেলিস্কোপ মূলত কোন ধরনের আলো পর্যবেক্ষণ করে?",
+   "o": [
+    "অতিবেগুনি",
+    "ইনফ্রারেড (অবলোহিত)",
+    "এক্স-রে",
+    "দৃশ্যমান সবুজ আলো"
+   ],
+   "a": 1
+  },
+  {
+   "q": "CRISPR প্রযুক্তি কীসের জন্য ব্যবহার হয়?",
+   "o": [
+    "জিন সম্পাদনা",
+    "মহাকাশযান চালানো",
+    "ছবি তোলা",
+    "বিদ্যুৎ সংরক্ষণ"
+   ],
+   "a": 0
+  },
+  {
+   "q": "ক্লাউড কম্পিউটিংয়ে ডেটা কোথায় সংরক্ষিত থাকে?",
+   "o": [
+    "আকাশের মেঘে",
+    "ইন্টারনেটের মাধ্যমে নাগালযোগ্য দূরবর্তী সার্ভারে",
+    "শুধু আপনার ফোনের র‍্যামে",
+    "কেবল পেনড্রাইভে"
+   ],
+   "a": 1
+  },
+  {
+   "q": "ওয়ার্ল্ড ওয়াইড ওয়েবের উদ্ভাবক কে?",
+   "o": [
+    "টিম বার্নার্স-লি",
+    "স্টিভ জবস",
+    "ডেনিস রিচি",
+    "লিনাস টোরভাল্ডস"
+   ],
+   "a": 0
+  },
+  {
+   "q": "একটি পণ্যের দাম ২০% বাড়িয়ে পরে ২০% কমানো হলো। মূল দামের তুলনায় এখন কী হলো?",
+   "o": [
+    "একই থাকল",
+    "৪% কমে গেল",
+    "৪% বেড়ে গেল",
+    "২% কমে গেল"
+   ],
+   "a": 1
+  },
+  {
+   "q": "কোয়ান্টাম কম্পিউটারে তথ্যের মৌলিক একককে কী বলে?",
+   "o": [
+    "বাইট",
+    "কিউবিট",
+    "পিক্সেল",
+    "হার্টজ"
+   ],
+   "a": 1
+  },
+  {
+   "q": "প্যারিস চুক্তি কী নিয়ে?",
+   "o": [
+    "জলবায়ু পরিবর্তন",
+    "বাণিজ্য শুল্ক",
+    "মহাকাশ গবেষণা",
+    "মুদ্রা বিনিময়"
+   ],
+   "a": 0
+  }
+ ],
+ "5": [
+  {
+   "q": "টুরিং টেস্ট কী যাচাই করে?",
+   "o": [
+    "যন্ত্র মানুষের মতো আচরণ করতে পারে কি না",
+    "কম্পিউটারের গতি",
+    "ইন্টারনেটের নিরাপত্তা",
+    "ব্যাটারির আয়ু"
+   ],
+   "a": 0
+  },
+  {
+   "q": "আধুনিক বড় ভাষা মডেলগুলোর (LLM) মূল স্থাপত্য কোনটি?",
+   "o": [
+    "ট্রান্সফরমার",
+    "ফ্ল্যাশ মেমোরি",
+    "ডায়াল-আপ",
+    "রিলে সার্কিট"
+   ],
+   "a": 0
+  },
+  {
+   "q": "ব্যাট আর বল মিলে ১১০ টাকা। ব্যাট বলের চেয়ে ১০০ টাকা বেশি দামি। বলের দাম কত?",
+   "o": [
+    "১০ টাকা",
+    "৫ টাকা",
+    "১৫ টাকা",
+    "২০ টাকা"
+   ],
+   "a": 1
+  },
+  {
+   "q": "টু-ফ্যাক্টর অথেনটিকেশন (2FA) কেন বেশি নিরাপদ?",
+   "o": [
+    "পাসওয়ার্ডের পরে আরেকটি যাচাই লাগে",
+    "পাসওয়ার্ড ছোট হয়",
+    "ইন্টারনেট দ্রুত হয়",
+    "ডেটা মুছে যায়"
+   ],
+   "a": 0
+  },
+  {
+   "q": "১০০ টাকা বছরে ১০% চক্রবৃদ্ধি সুদে ২ বছর রাখলে মোট কত হবে?",
+   "o": [
+    "১২০",
+    "১২১",
+    "১২২",
+    "১১০"
+   ],
+   "a": 1
+  },
+  {
+   "q": "হিগস বোসন কণা কোথায় প্রায়োগিকভাবে আবিষ্কৃত হয়?",
+   "o": [
+    "নাসা",
+    "সার্ন (CERN)",
+    "এমআইটি",
+    "ইসরো"
+   ],
+   "a": 1
+  },
+  {
+   "q": "হাইজেনবার্গের অনিশ্চয়তা নীতি কোন শাখার?",
+   "o": [
+    "কোয়ান্টাম বলবিদ্যা",
+    "জিনতত্ত্ব",
+    "অর্থনীতি",
+    "ভূতত্ত্ব"
+   ],
+   "a": 0
+  },
+  {
+   "q": "মুরের সূত্র অনুযায়ী চিপে ট্রানজিস্টর সংখ্যা মোটামুটি কত সময়ে দ্বিগুণ হয়?",
+   "o": [
+    "প্রতি মাসে",
+    "প্রায় প্রতি দুই বছরে",
+    "প্রতি দশ বছরে",
+    "প্রতি দিনে"
+   ],
+   "a": 1
+  },
+  {
+   "q": "১০ জন মানুষ প্রত্যেকে প্রত্যেকের সাথে ঠিক একবার হাত মেলালে মোট কতবার হাত মেলানো হয়?",
+   "o": [
+    "২০",
+    "৪৫",
+    "৯০",
+    "১০০"
+   ],
+   "a": 1
+  },
+  {
+   "q": "বাইনারি সার্চের সময় জটিলতা কোনটি?",
+   "o": [
+    "O(n²)",
+    "O(n)",
+    "O(log n)",
+    "O(1)"
+   ],
+   "a": 2
+  }
+ ]
+};
+  var LEVEL_NAMES = ['', 'সহজ', 'মাঝারি', 'কঠিন', 'খুব কঠিন', 'বিশেষজ্ঞ'];
+  var TIME = [0, 20, 20, 22, 25, 30];
+  var LABELS = ['ক', 'খ', 'গ', 'ঘ'];
+  var PER_LEVEL = 4, LEVELS = 5, TOTAL = PER_LEVEL * LEVELS;
+
+  function $(id) { return document.getElementById(id); }
+  function bn(n) { try { return Number(n).toLocaleString('bn-BD'); } catch (e) { return String(n); } }
+  function shuffle(a) {
+    a = a.slice();
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+
+  var intro = $('intro'), game = $('game'), result = $('result');
+  var scoreEl = $('score'), bestEl = $('best'), levelEl = $('level'), counterEl = $('counter'), livesEl = $('lives');
+  var fill = $('fill'), qEl = $('question'), optsEl = $('opts'), noteEl = $('note'), fiftyBtn = $('fifty');
+
+  var best = 0;
+  try { best = parseInt(localStorage.getItem('quiz-best'), 10) || 0; } catch (e) {}
+  bestEl.textContent = bn(best);
+
+  var list, idx, lives, score, right, used50, locked, cur, remaining, limit, raf, lastT;
+
+  // Sound
+  var actx = null;
+  function initAudio() {
+    try {
+      if (!actx) { var AC = window.AudioContext || window.webkitAudioContext; if (AC) actx = new AC(); }
+      if (actx && actx.state === 'suspended') actx.resume();
+    } catch (e) { actx = null; }
+  }
+  function tone(freqs, dur) {
+    if (!actx) return;
+    try {
+      var t = actx.currentTime;
+      freqs.forEach(function (f, i) {
+        var o = actx.createOscillator(), g = actx.createGain();
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(f, t + i * dur);
+        g.gain.setValueAtTime(0.0001, t + i * dur);
+        g.gain.exponentialRampToValueAtTime(0.14, t + i * dur + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + i * dur + dur);
+        o.connect(g); g.connect(actx.destination);
+        o.start(t + i * dur); o.stop(t + i * dur + dur + 0.02);
+      });
+    } catch (e) {}
+  }
+
+  function show(which) {
+    intro.hidden = which !== 'intro';
+    game.hidden = which !== 'game';
+    result.hidden = which !== 'result';
+  }
+
+  function newGame() {
+    initAudio();
+    list = [];
+    for (var l = 1; l <= LEVELS; l++) {
+      shuffle(POOL[l]).slice(0, PER_LEVEL).forEach(function (q) { list.push({ level: l, q: q.q, o: q.o, a: q.a }); });
+    }
+    idx = 0; lives = 3; score = 0; right = 0; used50 = false;
+    scoreEl.textContent = bn(0);
+    fiftyBtn.disabled = false;
+    show('game');
+    showQuestion();
+  }
+
+  function renderLives() {
+    var s = '';
+    for (var i = 0; i < 3; i++) s += i < lives ? '♥' : '♡';
+    livesEl.textContent = s;
+  }
+
+  function showQuestion() {
+    cur = list[idx];
+    locked = false;
+    levelEl.textContent = 'লেভেল ' + bn(cur.level) + ' · ' + LEVEL_NAMES[cur.level];
+    counterEl.textContent = bn(idx + 1) + '/' + bn(TOTAL);
+    renderLives();
+    qEl.textContent = cur.q;
+    noteEl.textContent = '';
+    noteEl.className = 'note';
+    var order = shuffle([0, 1, 2, 3]);
+    cur.map = order;
+    optsEl.innerHTML = '';
+    order.forEach(function (orig, pos) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'opt';
+      b.setAttribute('data-pos', pos);
+      var k = document.createElement('span'); k.className = 'k'; k.textContent = LABELS[pos];
+      var t = document.createElement('span'); t.textContent = cur.o[orig];
+      b.appendChild(k); b.appendChild(t);
+      b.addEventListener('click', function () { answer(pos); });
+      optsEl.appendChild(b);
+    });
+    fiftyBtn.disabled = used50;
+    limit = TIME[cur.level];
+    remaining = limit;
+    fill.style.transform = 'scaleX(1)';
+    fill.classList.remove('low');
+    lastT = performance.now();
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(tick);
+  }
+
+  function tick(t) {
+    if (locked) return;
+    var dt = Math.min(0.1, (t - lastT) / 1000);
+    lastT = t;
+    remaining -= dt;
+    if (remaining <= 0) { remaining = 0; fill.style.transform = 'scaleX(0)'; answer(-1); return; }
+    var f = remaining / limit;
+    fill.style.transform = 'scaleX(' + f + ')';
+    fill.classList.toggle('low', f < 0.25);
+    raf = requestAnimationFrame(tick);
+  }
+
+  function answer(pos) {
+    if (locked) return;
+    locked = true;
+    cancelAnimationFrame(raf);
+    var btns = optsEl.querySelectorAll('.opt');
+    var correctPos = cur.map.indexOf(cur.a);
+    btns.forEach(function (b) { b.disabled = true; });
+    fiftyBtn.disabled = true;
+    if (pos === correctPos) {
+      var pts = cur.level * 10 + Math.round(remaining);
+      score += pts; right += 1;
+      scoreEl.textContent = bn(score);
+      btns[pos].classList.add('correct');
+      noteEl.textContent = 'সঠিক! +' + bn(pts) + ' পয়েন্ট';
+      noteEl.className = 'note good';
+      tone([660, 880], 0.09);
+    } else {
+      lives -= 1;
+      renderLives();
+      if (pos >= 0) btns[pos].classList.add('wrong');
+      btns[correctPos].classList.add('correct');
+      noteEl.textContent = pos < 0 ? 'সময় শেষ!' : 'ভুল উত্তর';
+      noteEl.className = 'note bad';
+      tone([260, 190], 0.14);
+    }
+    setTimeout(next, 1400);
+  }
+
+  function next() {
+    if (lives <= 0 || idx >= TOTAL - 1) { finish(); return; }
+    idx += 1;
+    showQuestion();
+  }
+
+  function finish() {
+    var done = lives > 0;
+    if (score > best) {
+      best = score;
+      bestEl.textContent = bn(best);
+      try { localStorage.setItem('quiz-best', String(best)); } catch (e) {}
+    }
+    $('r-title').textContent = done ? 'অভিনন্দন, সব শেষ করেছ!' : 'খেলা শেষ';
+    $('r-score').textContent = bn(score);
+    $('r-correct').textContent = bn(right) + '/' + bn(TOTAL);
+    $('r-best').textContent = bn(best);
+    var msg;
+    if (right >= 18) msg = 'অসাধারণ! তুমি সত্যিই জ্ঞানী।';
+    else if (right >= 12) msg = 'দারুণ খেলেছ। আরেকবার চেষ্টা করলে আরও ভালো হবে।';
+    else if (right >= 6) msg = 'ভালো শুরু। আবার খেলে স্কোর বাড়িয়ে নাও।';
+    else msg = 'চিন্তা নেই, প্রশ্নগুলো প্রতিবার আলাদা আসে। আবার চেষ্টা করো।';
+    $('r-msg').textContent = msg;
+    show('result');
+  }
+
+  fiftyBtn.addEventListener('click', function () {
+    if (used50 || locked) return;
+    used50 = true;
+    fiftyBtn.disabled = true;
+    var correctPos = cur.map.indexOf(cur.a);
+    var wrongs = shuffle([0, 1, 2, 3].filter(function (p) { return p !== correctPos; })).slice(0, 2);
+    var btns = optsEl.querySelectorAll('.opt');
+    wrongs.forEach(function (p) { btns[p].classList.add('dim'); btns[p].disabled = true; });
+  });
+
+  $('start').addEventListener('click', newGame);
+  $('again').addEventListener('click', newGame);
+
+  document.addEventListener('keydown', function (e) {
+    if (game.hidden || locked) return;
+    var n = parseInt(e.key, 10);
+    if (n >= 1 && n <= 4) {
+      var b = optsEl.querySelectorAll('.opt')[n - 1];
+      if (b && !b.disabled) answer(n - 1);
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
